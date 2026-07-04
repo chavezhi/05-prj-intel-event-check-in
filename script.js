@@ -5,10 +5,11 @@ const teamSelect = document.getElementById("teamSelect");
 const attendeeCount = document.getElementById("attendeeCount");
 const progressBar = document.getElementById("progressBar");
 const greeting = document.getElementById("greeting");
+const storageKey = "intelEventCheckInData";
 
 // Track attendance
 let count = 0;
-const maxCount = 10;
+const maxCount = 50;
 
 function getWinningTeam() {
   const teams = ["water", "zero", "power"];
@@ -17,10 +18,8 @@ function getWinningTeam() {
 
   for (let i = 0; i < teams.length; i++) {
     const team = teams[i];
-    const teamCount = parseInt(
-      document.getElementById(team + "Count").textContent,
-      10,
-    );
+    const teamCounter = document.getElementById(team + "Count");
+    const teamCount = parseInt(teamCounter.textContent, 10);
 
     if (teamCount > highestCount) {
       highestCount = teamCount;
@@ -30,6 +29,67 @@ function getWinningTeam() {
 
   return winningTeam;
 }
+
+function updateProgress() {
+  attendeeCount.textContent = count;
+
+  const percentage = Math.min(100, Math.round((count / maxCount) * 100));
+  progressBar.style.width = percentage + "%";
+}
+
+function saveCounts() {
+  const storageData = {
+    total: count,
+    water: parseInt(document.getElementById("waterCount").textContent, 10),
+    zero: parseInt(document.getElementById("zeroCount").textContent, 10),
+    power: parseInt(document.getElementById("powerCount").textContent, 10),
+  };
+
+  localStorage.setItem(storageKey, JSON.stringify(storageData));
+}
+
+function loadCounts() {
+  const savedData = localStorage.getItem(storageKey);
+
+  if (savedData) {
+    const parsedData = JSON.parse(savedData);
+    count = parseInt(parsedData.total, 10) || 0;
+
+    const teams = ["water", "zero", "power"];
+
+    for (let i = 0; i < teams.length; i++) {
+      const team = teams[i];
+      const teamCounter = document.getElementById(team + "Count");
+      const savedTeamCount = parseInt(parsedData[team], 10) || 0;
+      teamCounter.textContent = savedTeamCount;
+    }
+
+    updateProgress();
+
+    if (count >= maxCount) {
+      const winningTeam = getWinningTeam();
+      const winningOption = teamSelect.querySelector(
+        "option[value='" + winningTeam + "']",
+      );
+      let winningLabel = winningTeam;
+
+      if (winningOption) {
+        winningLabel = winningOption.text;
+      }
+
+      greeting.innerHTML =
+        "🎉 Goal reached! The winning team is <strong>" +
+        winningLabel +
+        "</strong>!";
+      greeting.className = "success-message";
+      greeting.style.display = "block";
+    }
+  } else {
+    updateProgress();
+  }
+}
+
+loadCounts();
 
 // Handle form submission
 form.addEventListener("submit", function (event) {
@@ -44,11 +104,7 @@ form.addEventListener("submit", function (event) {
   count++;
 
   // Update attendee count on the page
-  attendeeCount.textContent = count;
-
-  // Update progress bar width
-  const percentage = Math.min(100, Math.round((count / maxCount) * 100));
-  progressBar.style.width = percentage + "%";
+  updateProgress();
 
   // Update team counter
   const teamCounter = document.getElementById(team + "Count");
@@ -57,20 +113,26 @@ form.addEventListener("submit", function (event) {
   // Show welcome or celebration message
   if (count >= maxCount) {
     const winningTeam = getWinningTeam();
-    const winningTeamName = document
-      .getElementById(winningTeam + "Count")
-      .id.replace("Count", "");
-    const winningLabel = teamSelect.querySelector(
+    const winningOption = teamSelect.querySelector(
       "option[value='" + winningTeam + "']",
-    )?.text;
+    );
+    let winningLabel = winningTeam;
 
-    greeting.innerHTML = `🎉 Goal reached! The winning team is <strong>${winningLabel || winningTeamName}</strong>!`;
+    if (winningOption) {
+      winningLabel = winningOption.text;
+    }
+
+    greeting.innerHTML =
+      "🎉 Goal reached! The winning team is <strong>" +
+      winningLabel +
+      "</strong>!";
   } else {
-    greeting.textContent = `🎉Welcome, ${name} from ${teamName}!`;
+    greeting.textContent = "🎉Welcome, " + name + " from " + teamName + "!";
   }
 
   greeting.className = "success-message";
   greeting.style.display = "block";
 
+  saveCounts();
   form.reset();
 });
