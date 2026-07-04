@@ -8,7 +8,28 @@ const greeting = document.getElementById("greeting");
 
 // Track attendance
 let count = 0;
-const maxCount = 50;
+const maxCount = 10;
+
+function getWinningTeam() {
+  const teams = ["water", "zero", "power"];
+  let winningTeam = teams[0];
+  let highestCount = -1;
+
+  for (let i = 0; i < teams.length; i++) {
+    const team = teams[i];
+    const teamCount = parseInt(
+      document.getElementById(team + "Count").textContent,
+      10,
+    );
+
+    if (teamCount > highestCount) {
+      highestCount = teamCount;
+      winningTeam = team;
+    }
+  }
+
+  return winningTeam;
+}
 
 // Handle form submission
 form.addEventListener("submit", function (event) {
@@ -33,8 +54,21 @@ form.addEventListener("submit", function (event) {
   const teamCounter = document.getElementById(team + "Count");
   teamCounter.textContent = parseInt(teamCounter.textContent, 10) + 1;
 
-  // Show welcome message
-  greeting.textContent = `Welcome, ${name} from ${teamName}!`;
+  // Show welcome or celebration message
+  if (count >= maxCount) {
+    const winningTeam = getWinningTeam();
+    const winningTeamName = document
+      .getElementById(winningTeam + "Count")
+      .id.replace("Count", "");
+    const winningLabel = teamSelect.querySelector(
+      "option[value='" + winningTeam + "']",
+    )?.text;
+
+    greeting.innerHTML = `🎉 Goal reached! The winning team is <strong>${winningLabel || winningTeamName}</strong>!`;
+  } else {
+    greeting.textContent = `🎉Welcome, ${name} from ${teamName}!`;
+  }
+
   greeting.className = "success-message";
   greeting.style.display = "block";
 
